@@ -7,6 +7,8 @@ using Microsoft.Office.Interop.Word;
 using Word = Microsoft.Office.Interop.Word;
 //using System.Windows.Forms;
 using System.Drawing.Imaging;
+using System.Windows.Forms;
+using WordAddIn1.ApiObjects;
 
 namespace BIMTrackWordAddIn
 {
@@ -14,23 +16,31 @@ namespace BIMTrackWordAddIn
     {
         BIMTrackAPI api;
         RibbonFactory factory;
-        private Application application;
+        private Word.Application application;
 
         private void BIMTrackRibbon_Load(object sender, RibbonUIEventArgs e)
         {
             api = new BIMTrackAPI();
             factory = Globals.Factory.GetRibbonFactory();
-            txtApiKey.Text = api.apiKey;
+            txtApiKey.Text = api.ApiKey;
         }
 
         private void btnLoadProjects_Click(object sender, RibbonControlEventArgs e)
         {
             string apiKey = txtApiKey.Text;
-            api.apiKey = apiKey;
-            api.hubId = api.getHubs().First().Id;
-            var projects = api.getProjects(api.hubId);
+            api.ApiKey = apiKey;
+            api.LoadHubs();
+            var hub = api.Hubs.FirstOrDefault();
+            if (hub == null)
+            {
+                return;
+            }
+
+            api.HubId = hub.Id;
+            api.HubName = hub.Name;
+            api.LoadProjects();
  
-            foreach (Project p  in projects)
+            foreach (Project p  in api.Projects)
             {       
                 var item = factory.CreateRibbonDropDownItem();
 
@@ -45,6 +55,13 @@ namespace BIMTrackWordAddIn
 
             Word.Selection selection = application.Selection;
             string selectionText = selection.Text; // TODO: we may need to clean things up, or iterate through each line as an issue?
+
+            if (String.IsNullOrWhiteSpace(selectionText))
+            {
+                MessageBox.Show("Text is required to create an issue.");
+                return;
+            }
+
             selectionText = System.Text.RegularExpressions.Regex.Replace(selectionText, @"\t|\n|\r", "");
             while (selectionText.EndsWith("/"))
             {
@@ -79,19 +96,21 @@ namespace BIMTrackWordAddIn
             }
 
             // get currently selected project id
-            int projectId = api.projects.Find(x => x.Name == drpDwnProjects.SelectedItem.Label).Id;
+            int projectId = api.Projects.Find(x => x.Name == drpDwnProjects.SelectedItem.Label).Id;
 
-            var createdIssue = api.createIssue(selectionText, api.hubId, projectId);
+            var createdIssue = api.CreateIssue(selectionText, api.HubId, projectId);
 
             foreach (System.Drawing.Image image in images)
             {
-                var viewpoint = api.createViewpoint(api.hubId, projectId, createdIssue.Id, image);
+                api.CreateViewpoint(api.HubId, projectId, createdIssue.Id, image);
+                image.Dispose();
             }
 
-            // https://vincentcadoret.bimtrackapp.co/Projects/7991/Issues/10
+            
+            // https://[hubName].bimtrackapp.co/Projects/{projectId}/Issues/{issueNumber}
             // Convert selected text to link to newly created issue.
             //  TODO: link creation is broken since I added the image.
-            Object hyperlink = "https://vincentcadoret.bimtrackapp.co/Projects/" + createdIssue.ProjectId + "/Issues/" + createdIssue.Number;
+            Object hyperlink = $"https://{api.HubName}.bimtrackapp.co/Projects/" + createdIssue.ProjectId + "/Issues/" + createdIssue.Number;
             Object oRange = selection.Range;
             selection.Hyperlinks.Add(oRange, ref hyperlink);
         }
