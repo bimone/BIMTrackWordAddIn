@@ -8,10 +8,18 @@ A BIM Track Add-in for Word!
 - [Microsoft Office SDK](https://docs.microsoft.com/en-us/visualstudio/vsto/getting-started-office-development-in-visual-studio?view=vs-2017).
 - .NET 4.0 or greater.
 
-## Usage
+## Code Usage
 1. Open BIMTrackWordAddIn.sln in Visual Studio 2017+
 2. Install RestSharp using NuGet package manager.
-3. Compile & Run in debug mode (this should launch Word and load the Add-in into the ribbon). 
+3. Compile & Run in debug mode (this should launch Word and load the Add-in into the ribbon).
+
+## Word Add-in Usage
+1. Enter your [BIM Track Hub API key](https://bimtrack.co/resources/api) in the ribbon area for it.
+2. Load the projects.
+3. Select the project to push your issues to.
+4. Select a line of text and an image.
+5. Click on "Create Issue" button.
+6. You just uploaded something to your hub.
 
 ## Known issues
 - Currently cannot upload more than one image (not an API limitation, just a limitation of the code in this prototype).
